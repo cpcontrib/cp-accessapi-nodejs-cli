@@ -4,10 +4,14 @@ var program = require('commander');
 var prompt = require('prompt');
 var fs = require('fs');
 
+var constants = {
+  configJsonName: "accessapi-config.json"
+};
+
 program
   .parse(process.argv)
   
-console.log('Initialize a cp-config.json');
+console.log('Initialize a %s', constants.configJsonName);
 console.log();
 console.log('Note that the CrownPeak AccessAPI requires the use of an API Key.  Contact CrownPeak support at support@crownpeak.com to request a key.');
 console.log();
@@ -17,7 +21,7 @@ var currentValues = {};
 if(fs.existsSync('accessapi-config.json')) {
   
   try {
-    currentValues = JSON.parse(fs.readFileSync('accessapi-config.json', { encoding:"utf8" }));
+    currentValues = JSON.parse(fs.readFileSync(constants.configJsonName, { encoding:"utf8" }));
   } 
   catch(e) {
   }
@@ -62,8 +66,10 @@ prompt.get(properties, function(err,result) {
   
   console.log('result', result);
 
-  fs.writeFileSync('./accessapi-config.json', JSON.stringify(result,null,2), 'utf-8');
-  console.log('Wrote answers to accessapi-config.json');
+  fs.writeFileSync('./' + constants.configJsonName, JSON.stringify(result,null,2), 'utf-8');
+  
+  console.log();
+  console.log('Wrote answers to %s', constants.configJsonName);
 
 });
 
