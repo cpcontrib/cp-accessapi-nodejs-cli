@@ -20,8 +20,11 @@
   "bugs": {
     "url": "https://github.com/ericnewton76/cp-accessapi-nodejs-cli/issues"
   },
-  "homepage": "https://github.com/ericnewton76/cp-accessapi-nodejs-cli#readme"
-  ,"bin" : {
+  "homepage": "https://github.com/ericnewton76/cp-accessapi-nodejs-cli#readme",
+  "bin": {
     "crownpeak": "./index.js"
+  },
+  "dependencies": {
+    "commander": "^2.9.0"
   }
 }
