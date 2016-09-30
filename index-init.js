@@ -3,6 +3,7 @@
 var program = require('commander');
 var prompt = require('prompt');
 var fs = require('fs');
+var chalk = require('chalk');
 
 var constants = {
   configJsonName: "accessapi-config.json"
@@ -24,6 +25,8 @@ if(fs.existsSync('accessapi-config.json')) {
     currentValues = JSON.parse(fs.readFileSync(constants.configJsonName, { encoding:"utf8" }));
   } 
   catch(e) {
+    console.log(chalk.red('Warning: Failed to read current %s',constants.configJsonName));
+    console.log();
   }
 }
 
@@ -33,6 +36,7 @@ var properties = [
     name: 'cms-instance-name'
     ,default: currentValues["cms-instance-name"]
     ,message: 'Name of the CrownPeak instance'
+    ,pattern: /^\w+$/
   }
   ,{
     name: 'apikey'
