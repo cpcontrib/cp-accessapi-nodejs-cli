@@ -11,7 +11,7 @@ var constants = {
 
 program
   .name('update')
- 
+
 program
   .option('-i,--instance', 'instance (required if multiple instances in accessapi-config.json)')
   .option('--stdin', 'read input from stdin')
@@ -25,63 +25,63 @@ program
   .parse(process.argv)
 
 getUpdateGram = function (program, encoding, cb) {
+  
+  
+  if (program.stdin) {
+    var stdin = process.stdin;
+    var stdout = process.stdout;
+    
+    var inputChunks = [];
+    
+    stdin.on('data', function (data) {
+      inputChunks.push(data);
+    });
+    
+    stdin.on('end', function () {
+      var inputJSON = (inputChunks.length == 1 ? inputChunks[0] : inputChunks.join(""));
+      var parsedData = JSON.parse(inputJSON);
+      cb(parsedData);
+    });
 
-	
-	if (program.stdin) {
-		var stdin = process.stdin;
-		var stdout = process.stdout;
-		
-		var inputChunks = [];
-		
-		stdin.on('data', function (data) {
-			inputChunks.push(data);
-		});
-		
-		stdin.on('end', function () {
-			var inputJSON = (inputChunks.length == 1 ? inputChunks[0] : inputChunks.join(""));
-			var parsedData = JSON.parse(inputJSON);
-			cb(parsedData);
-		});
+  }
 
-	}
-
-	else //read from file
-	{
-		//read file name from program.args[2]
-		fs.readFile(program.args[2], { 'encoding': encoding }, function (data) {
-			cb(data);
-		});
-	}
+  else //read from file
+  {
+    //read file name from program.args[2]
+    fs.readFile(program.args[2], { 'encoding': encoding }, function (data) {
+      cb(data);
+    });
+  }
 		
 }
 
 main = function () {
-	console.log('read accessapi-config');
-	
-	//var reader = require('./accessapi-json-config-reader');
-	var accessapiConfig = JSON.parse(fs.readFileSync('./accessapi-config.json'));
-	
-	console.log('read config', accessapiConfig);
-	
-	var accessapi = require('crownpeak-accessapi');
-	accessapi.setConfig(accessapiConfig);
-	
-	console.log('calling auth');
-	accessapi.auth(function (data) {
-		
-		console.log('calling AssetExists args1=\'%s\'.', program.args[1]);
-		accessapi.AssetExists(program.args[1], function (data) {
-			console.log('assetexists data returned', data);
-		});
-		
-		getUpdateGram(program, function (body) {
-			
-			console.log('body', body)
-		
-		//accessapi.AssetUpdate()
+  console.log('read accessapi-config');
+  
+  //var reader = require('./accessapi-json-config-reader');
+  var accessapiConfig = JSON.parse(fs.readFileSync('./accessapi-config.json'));
+  
+  console.log('read config', accessapiConfig);
+  
+  var accessapi = require('crownpeak-accessapi');
+  accessapi.setConfig(accessapiConfig);
+  
+  console.log('calling auth');
+  accessapi.auth(function (data) {
+    
+    console.log('calling AssetExists args1=\'%s\'.', program.args[1]);
+    accessapi.AssetExists(program.args[1], function (data) {
+      console.log('assetexists data returned', data);
+    });
+    
+    getUpdateGram(program, function (body) {
+      
+      console.log('body', body)
 
-		});
+      //accessapi.AssetUpdate()
 
-	});
+    });
+
+  });
 
 }();
