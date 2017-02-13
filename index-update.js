@@ -31,6 +31,8 @@ program
 getUpdateGram = function (program, encoding, cb) {
   
   
+console.log('program.config=%s', program.config);
+console.log('program.assetPath=%s', program.assetPath);
   if (program.stdin) {
     var stdin = process.stdin;
     var stdout = process.stdout;
