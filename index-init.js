@@ -33,7 +33,7 @@ if(fs.existsSync('accessapi-config.json')) {
 //https://github.com/flatiron/prompt#valid-property-settings
 var properties = [
   { 
-    name: 'cms-instance-name'
+    name: 'instance'
     ,default: currentValues["cms-instance-name"]
     ,message: 'Name of the CrownPeak instance'
     ,pattern: /^\w+$/
