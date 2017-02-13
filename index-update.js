@@ -80,21 +80,25 @@ main = function () {
   accessapi.setConfig(accessapiConfig);
   
   console.log('calling auth');
-  accessapi.auth(function (data) {
+  accessapi.auth().then(function (data) {
     
-    console.log('calling AssetExists args1=\'%s\'.', program.args[1]);
-    accessapi.AssetExists(program.args[1], function (data) {
-      console.log('assetexists data returned', data);
-    });
-    
-    getUpdateGram(program, function (body) {
+    var assetIdOrPath = program.assetPath;
+
+    accessapi.AssetExists(assetIdOrPath).then(function (existsResp) {
       
-      console.log('body', body)
+      //existsResp documented http://developer.crownpeak.com/Documentation/AccessAPI/AssetController/Methods/Exists(AssetExistsRequest).html
+      var workflowAssetId = existsResp.json.assetId;
+      
+      getUpdateGram(program).then(function (fieldsJson) {
+        
+        accessapi.AssetUpdate(workflowAssetId, fieldsJson, null, /*runPostInput*/false, /*runPostSave*/true);
 
-      //accessapi.AssetUpdate()
+      });
 
     });
 
-  });
+  }).catch(function (err) {
+    console.log("error occurred:", err);
+  })
 
 }();
