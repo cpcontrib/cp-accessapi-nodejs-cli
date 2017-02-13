@@ -4,6 +4,7 @@ var program = require('commander');
 var prompt = require('prompt');
 var fs = require('fs');
 var chalk = require('chalk');
+var Q = require('q');
 
 var constants = {
   configJsonName: "accessapi-config.json"
@@ -28,11 +29,12 @@ program
 program
   .parse(process.argv)
 
-getUpdateGram = function (program, encoding, cb) {
-  
-  
 console.log('program.config=%s', program.config);
 console.log('program.assetPath=%s', program.assetPath);
+getUpdateGram = function (program, encoding) {
+  console.log('getUpdateGram'.green);
+  var deferred = Q.defer();
+
   if (program.stdin) {
     var stdin = process.stdin;
     var stdout = process.stdout;
@@ -46,7 +48,7 @@ console.log('program.assetPath=%s', program.assetPath);
     stdin.on('end', function () {
       var inputJSON = (inputChunks.length == 1 ? inputChunks[0] : inputChunks.join(""));
       var parsedData = JSON.parse(inputJSON);
-      cb(parsedData);
+      deferred.resolve(parsedData);
     });
 
   }
@@ -54,11 +56,10 @@ console.log('program.assetPath=%s', program.assetPath);
   else //read from file
   {
     //read file name from program.args[2]
-    fs.readFile(program.inputFile, { 'encoding': encoding }, function (data) {
-      cb(data);
-    });
+    return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': encoding });
   }
-		
+  
+  return deferred.promise;
 }
 
 main = function () {
