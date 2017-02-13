@@ -14,6 +14,7 @@ program
   .name('update')
 
 program
+  .option('--config <file>', 'a config file to use', 'accessapi-config.json')
   .option('-i,--instance', 'instance (required if multiple instances in accessapi-config.json)')
   .option('--stdin', 'read input from stdin')
   .option('--as', 'set type of asset to be one of: developercs (updates body field) or binary (updates binary data). others defined later. this option used with file input or --stdin')
@@ -72,7 +73,7 @@ main = function () {
   console.log('read %s', program.config);
   
   //var reader = require('./accessapi-json-config-reader');
-  var accessapiConfig = JSON.parse(fs.readFileSync('./accessapi-config.json'));
+  var accessapiConfig = JSON.parse(fs.readFileSync(program.config));
   
   console.log('read config', accessapiConfig);
   
