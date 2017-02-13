@@ -19,6 +19,7 @@
   <ItemGroup>
     <Content Include="package.json" />
     <Content Include="README.md" />
+    <Compile Include="index-update.js" />
     <Compile Include="index-init.js" />
     <Compile Include="index.js" />
   </ItemGroup>
