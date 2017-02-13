@@ -19,7 +19,11 @@ program
   .option('--field', 'force updating specific field name')
   .option('-pi,--runPostInput','run post input plugin for the asset\'s template')
   .option('-ps,--runPostSave', 'run post save')
-  .arguments("file");
+  .arguments("<assetPath> [inputFile]")
+  .action(function (assetPath, inputFile) {
+    program.assetPath = assetPath;
+    program.inputFile = inputFile;
+  })
 
 program
   .parse(process.argv)
@@ -48,7 +52,7 @@ getUpdateGram = function (program, encoding, cb) {
   else //read from file
   {
     //read file name from program.args[2]
-    fs.readFile(program.args[2], { 'encoding': encoding }, function (data) {
+    fs.readFile(program.inputFile, { 'encoding': encoding }, function (data) {
       cb(data);
     });
   }
@@ -56,7 +60,13 @@ getUpdateGram = function (program, encoding, cb) {
 }
 
 main = function () {
-  console.log('read accessapi-config');
+  if (typeof program.assetPath === 'undefined') {
+    program.help();
+    process.exit(1);
+  }
+  
+  
+  console.log('read %s', program.config);
   
   //var reader = require('./accessapi-json-config-reader');
   var accessapiConfig = JSON.parse(fs.readFileSync('./accessapi-config.json'));
