@@ -40,3 +40,4 @@ jspm_packages
 .ntvs_analysis.dat
 *.suo
 accessapi-config.json 
+**/obj/* 
