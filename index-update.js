@@ -18,7 +18,7 @@ program
   .option('-i,--instance', 'instance (required if multiple instances in accessapi-config.json)')
   .option('--stdin', 'read input from stdin')
   .option('--as', 'set type of asset to be one of: developercs (updates body field) or binary (updates binary data). others defined later. this option used with file input or --stdin')
-  .option('--field', 'force updating specific field name')
+  .option('--field <field>', 'update using a specific field name, use when updating from a file or stdin without json')
   .option('-pi,--runPostInput','run post input plugin for the asset\'s template')
   .option('-ps,--runPostSave', 'run post save')
   .arguments("<assetPath> [inputFile]")
@@ -32,7 +32,8 @@ program
 
 console.log('program.config=%s', program.config);
 console.log('program.assetPath=%s', program.assetPath);
-getUpdateGram = function (program, encoding) {
+
+function getContent (program, encoding) {
   console.log('getUpdateGram'.green);
   var deferred = Q.defer();
 
@@ -43,13 +44,28 @@ getUpdateGram = function (program, encoding) {
     var inputChunks = [];
     
     stdin.on('data', function (data) {
+      if (Buffer.isBuffer(data)) data = data.toString('utf8');
       inputChunks.push(data);
+      console.log('chunk', data)
     });
     
     stdin.on('end', function () {
-      var inputJSON = (inputChunks.length == 1 ? inputChunks[0] : inputChunks.join(""));
-      var parsedData = JSON.parse(inputJSON);
-      deferred.resolve(parsedData);
+      var contentStr = (inputChunks.length == 1 ? inputChunks[0] : inputChunks.join(""));
+      
+      try {
+        var parsedData = JSON.parse(contentStr);
+        console.log('resolve', parsedData);
+        deferred.resolve(parsedData);
+        return;
+      }
+      catch(ex) { }
+      
+      if (program.field !== undefined) {
+        parsedData = {};
+        parsedData[program.field] = contentStr;
+        deferred.resolve(parsedData);
+      }
+      
     });
 
   }
@@ -57,6 +73,7 @@ getUpdateGram = function (program, encoding) {
   else //read from file
   {
     //read file name from program.args[2]
+    console.log('reading from file=%s', program.inputFile);
     return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': encoding });
   }
   
@@ -90,7 +107,7 @@ main = function () {
       //existsResp documented http://developer.crownpeak.com/Documentation/AccessAPI/AssetController/Methods/Exists(AssetExistsRequest).html
       var workflowAssetId = existsResp.json.assetId;
       
-      getUpdateGram(program).then(function (fieldsJson) {
+      getContent(program).then(function (fieldsJson) {
         
         accessapi.AssetUpdate(workflowAssetId, fieldsJson, null, /*runPostInput*/false, /*runPostSave*/true);
 
