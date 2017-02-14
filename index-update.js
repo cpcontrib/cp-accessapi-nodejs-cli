@@ -50,9 +50,6 @@ function fail(text) {
   }
 }
 
-process.stdout.write("\n");
-process.stdout.write("Crownpeak CLI starting.\n");
-
 program
   .name('update')
 
