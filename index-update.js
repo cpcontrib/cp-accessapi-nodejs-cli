@@ -59,8 +59,8 @@ program
   .option('--stdin', 'read input from stdin')
   .option('--as', 'set type of asset to be one of: developercs (updates body field) or binary (updates binary data). others defined later. this option used with file input or --stdin')
   .option('--field <field>', 'update using a specific field name, use when updating from a file or stdin without json')
-  .option('-pi,--runPostInput','run post input plugin for the asset\'s template')
-  .option('-ps,--runPostSave', 'run post save')
+  .option('--runPostInput','run post input plugin for the asset\'s template', false)
+  .option('--runPostSave', 'run post save plugin on the asset\'s template', false)
   .arguments("<assetPath> [inputFile]")
   .action(function (assetPath, inputFile) {
     program.assetPath = assetPath;
@@ -191,8 +191,15 @@ var exitcode=-1;
           log.debug('fieldsJson:', fieldsJson);
         }
 
-        log.debug('calling AssetUpdate');
-        accessapi.AssetUpdate(workflowAssetId, fieldsJson, null, /*runPostInput*/false, /*runPostSave*/true).then(function() {
+        var options={};
+        if(program.runPostInput != undefined)
+          options.runPostInput = program.runPostInput;
+
+        if(program.runPostSave != undefined)
+          options.runPostSave = program.runPostSave;
+
+        log.debug('calling AssetUpdate. options=%j', options);
+        accessapi.AssetUpdate(workflowAssetId, fieldsJson, null, options).then(function() {
           status('Success updating %s.', program.assetPath);
         })
 
@@ -203,7 +210,7 @@ var exitcode=-1;
   }, function(err) {
     fail('Authentication failure: %s', err.resultCode);
   }).catch(function (err) {
-    error("error occurred:", err);
+    log.error("error occurred:", err);
   }).done();
 
 }();
