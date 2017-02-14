@@ -115,7 +115,7 @@ function getContent (program, encoding) {
   {
     //read file name from program.args[2]
     log.debug('reading from file=%s', program.inputFile);
-    return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': encoding });
+    return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': 'utf8' });
   }
   
   return deferred.promise;
@@ -166,8 +166,31 @@ var exitcode=-1;
       //existsResp documented http://developer.crownpeak.com/Documentation/AccessAPI/AssetController/Methods/Exists(AssetExistsRequest).html
       var workflowAssetId = existsResp.json.assetId;
       
-      getContent(program).then(function (fieldsJson) {
+      getContent(program).then(function (content) {
         
+        var fieldsJson;
+
+        if(Buffer.isBuffer(content) || typeof content === 'string') {
+          log.debug('content is buffer or string. program.field=%s', program.field);
+          if (program.field == undefined) {
+            fail('Content wasnt parseable as json, and no --field parameter specified.');
+            program.help();
+          }
+        }
+
+        if(Buffer.isBuffer(content)) {
+          fieldsJson = {};
+          fieldsJson[program.field] = content.toString('utf8');
+        }
+        if(typeof content === 'string') {
+          fieldsJson = {};
+          fieldsJson[program.field] = content;
+        }
+
+        if(log.isDebugEnabled) {
+          log.debug('fieldsJson:', fieldsJson);
+        }
+
         log.debug('calling AssetUpdate');
         accessapi.AssetUpdate(workflowAssetId, fieldsJson, null, /*runPostInput*/false, /*runPostSave*/true).then(function() {
           status('Success updating %s.', program.assetPath);
