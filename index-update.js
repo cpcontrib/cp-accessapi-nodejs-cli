@@ -122,11 +122,20 @@ function getContent (program, encoding) {
 }
 
 main = function () {
+
+var exitcode=-1;
+
   if (typeof program.assetPath === 'undefined') {
     fail('no assetPath specified.');
-    program.help();
-    process.exit(1);
+    exitcode=1;
   }
+
+  if (program.inputFile == undefined && program.stdin == undefined) {
+    fail('no inputFile specified and --stdin not specified.  Cannot update.');
+    exitcode=1;
+  }
+
+  if(exitcode>0) { program.help();process.exit(exitcode); }
   
   log.debug('Loading config from %s.', program.config);
   if (fs.existsSync(program.config)==false) {
