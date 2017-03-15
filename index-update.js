@@ -54,8 +54,8 @@ program
   .name('update')
 
 program
-  .option('--config <file>', 'a config file to use', 'accessapi-config.json')
-  .option('-i,--instance', 'instance (required if multiple instances in accessapi-config.json)')
+  .option('--config <file>', 'a config file to use. defaults to using ./accessapi-config.json', 'accessapi-config.json')
+  .option('-i,--instance', 'instance (required if multiple instances defined in the config file)')
   .option('--stdin', 'read input from stdin')
   .option('--as', 'set type of asset to be one of: developercs (updates body field) or binary (updates binary data). others defined later. this option used with file input or --stdin')
   .option('--field <field>', 'update using a specific field name, use when updating from a file or stdin without json')
@@ -76,6 +76,7 @@ log.debug('program.assetPath',program.assetPath);
 function getContent (program, encoding) {
   if (log.isDebugEnabled) log.debug('begin reading content');
   var deferred = Q.defer();
+  var collector = Q.defer();
 
   if (program.stdin) {
     log.debug('reading content from stdin');
@@ -96,7 +97,7 @@ function getContent (program, encoding) {
       
       try {
         var parsedData = JSON.parse(contentStr);
-        deferred.resolve(parsedData);
+        collector.resolve(parsedData);
         return;
       }
       catch(ex) { }
@@ -104,7 +105,7 @@ function getContent (program, encoding) {
       if (program.field !== undefined) {
         parsedData = {};
         parsedData[program.field] = contentStr;
-        deferred.resolve(parsedData);
+        collector.resolve(parsedData);
       }
       
     });
@@ -117,6 +118,30 @@ function getContent (program, encoding) {
     log.debug('reading from file=%s', program.inputFile);
     return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': 'utf8' });
   }
+
+  collector.then((content)=>{
+    
+    if(Buffer.isBuffer(content) || typeof content === 'string') {
+      log.debug('content is buffer or string. program.field=%s', program.field);
+      if (program.field == undefined) {
+        fail('Content wasnt parseable as json, and no --field parameter specified.');
+        program.help();
+      }
+    }
+
+    if(Buffer.isBuffer(content)) {
+      fieldsJson = {};
+      fieldsJson[program.field] = content.toString('utf8');
+    }
+    if(typeof content === 'string') {
+      fieldsJson = {};
+      fieldsJson[program.field] = content;
+    }
+    
+    deferred.resolve(fieldsJson);
+  }, (err) => {
+    deferred.reject(err);
+  })
   
   return deferred.promise;
 }
@@ -166,29 +191,10 @@ var exitcode=-1;
       //existsResp documented http://developer.crownpeak.com/Documentation/AccessAPI/AssetController/Methods/Exists(AssetExistsRequest).html
       var workflowAssetId = existsResp.json.assetId;
       
-      getContent(program).then(function (content) {
+      getContent(program).then(function (fieldsJson) {
         
-        var fieldsJson;
-
-        if(Buffer.isBuffer(content) || typeof content === 'string') {
-          log.debug('content is buffer or string. program.field=%s', program.field);
-          if (program.field == undefined) {
-            fail('Content wasnt parseable as json, and no --field parameter specified.');
-            program.help();
-          }
-        }
-
-        if(Buffer.isBuffer(content)) {
-          fieldsJson = {};
-          fieldsJson[program.field] = content.toString('utf8');
-        }
-        if(typeof content === 'string') {
-          fieldsJson = {};
-          fieldsJson[program.field] = content;
-        }
-
         if(log.isDebugEnabled) {
-          log.debug('fieldsJson:', fieldsJson);
+          log.debug('fieldsJson from getContent:', fieldsJson);
         }
 
         var options={};
