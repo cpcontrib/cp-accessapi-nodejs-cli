@@ -10,6 +10,8 @@ var log4js = require('log4js');
 
 var log = log4js.getLogger();
 
+process.on('exit', () => { process.exit(0); })
+
 if (fs.existsSync('./log4js.json')) {
   log4js.configure('./log4js.json');
 } else if(process.env["LOG4JS_CONFIG"] !== undefined) {
@@ -64,7 +66,10 @@ program
   .arguments("<assetPath> [inputFile]")
   .action(function (assetPath, inputFile) {
     program.assetPath = assetPath;
-    program.inputFile = inputFile;
+    if(program.field === undefined)
+      program.inputFile = inputFile;
+    else
+      program.fieldvalue = inputFile;
   })
 
 program
@@ -107,11 +112,43 @@ function getContent (program, encoding) {
         parsedData[program.field] = contentStr;
         collector.resolve(parsedData);
       }
+
+      collector.then((content)=>{
+    
+        if(Buffer.isBuffer(content) || typeof content === 'string') {
+          log.debug('content is buffer or string. program.field=%s', program.field);
+          if (program.field == undefined) {
+            fail('Content wasnt parseable as json, and no --field parameter specified.');
+            program.help();
+          }
+        }
+
+        if(Buffer.isBuffer(content)) {
+          fieldsJson = {};
+          fieldsJson[program.field] = content.toString('utf8');
+        }
+        if(typeof content === 'string') {
+          fieldsJson = {};
+          fieldsJson[program.field] = content;
+        }
+        
+        deferred.resolve(fieldsJson);
+      }, (err) => {
+        deferred.reject(err);
+      })
       
     });
 
+  } else if(program.field !== undefined) {
+    log.debug('set field: %s to value: "%s".', program.field, program.fieldvalue);
+    if(program.fieldvalue !== undefined) {
+      var fields = {};
+      fields[program.field] = program.fieldvalue;
+      deferred.resolve(fields);
+    } else {
+      deferred.resolve({});
+    }
   }
-
   else //read from file
   {
     //read file name from program.args[2]
@@ -119,29 +156,7 @@ function getContent (program, encoding) {
     return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': 'utf8' });
   }
 
-  collector.then((content)=>{
-    
-    if(Buffer.isBuffer(content) || typeof content === 'string') {
-      log.debug('content is buffer or string. program.field=%s', program.field);
-      if (program.field == undefined) {
-        fail('Content wasnt parseable as json, and no --field parameter specified.');
-        program.help();
-      }
-    }
-
-    if(Buffer.isBuffer(content)) {
-      fieldsJson = {};
-      fieldsJson[program.field] = content.toString('utf8');
-    }
-    if(typeof content === 'string') {
-      fieldsJson = {};
-      fieldsJson[program.field] = content;
-    }
-    
-    deferred.resolve(fieldsJson);
-  }, (err) => {
-    deferred.reject(err);
-  })
+  
   
   return deferred.promise;
 }
@@ -155,7 +170,7 @@ var exitcode=-1;
     exitcode=1;
   }
 
-  if (program.inputFile == undefined && program.stdin == undefined) {
+  if (program.inputFile == undefined && program.field == undefined && program.stdin == undefined) {
     fail('no inputFile specified and --stdin not specified.  Cannot update.');
     exitcode=1;
   }
