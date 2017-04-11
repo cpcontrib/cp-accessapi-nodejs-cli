@@ -34,9 +34,14 @@ if(fs.existsSync('accessapi-config.json')) {
 var properties = [
   { 
     name: 'instance'
-    ,default: currentValues["cms-instance-name"]
+    ,default: currentValues["instance"]
     ,message: 'Name of the CrownPeak instance'
     ,pattern: /^\w+$/
+  }
+  ,{
+    name: 'domain'
+    ,default: currentValues["domain"] || "cms.crownpeak.net"
+    ,message: 'Domain of api service'
   }
   ,{
     name: 'apikey'
@@ -66,9 +71,10 @@ prompt.start();
 prompt.get(properties, function(err,result) {
   if(err) { return onErr(err); }
   
-  result["cms-instance-url"] = "https://cms.crownpeak.net/" + result["cms-instance-name"];
+  result["cms-instance-url"] = "https://" + result["domain"] + "/" + result["instance"];
   
-  console.log('result', result);
+  console.log('options:');
+  console.log(result);
 
   fs.writeFileSync('./' + constants.configJsonName, JSON.stringify(result,null,2), 'utf-8');
   
