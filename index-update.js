@@ -66,10 +66,7 @@ program
   .arguments("<assetPath> [inputFile]")
   .action(function (assetPath, inputFile) {
     program.assetPath = assetPath;
-    if(program.field === undefined)
-      program.inputFile = inputFile;
-    else
-      program.fieldvalue = inputFile;
+    program.inputFile = inputFile;
   })
 
 program
