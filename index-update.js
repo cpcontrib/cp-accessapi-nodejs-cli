@@ -75,11 +75,40 @@ program
 log.debug('program.config',program.config);
 log.debug('program.assetPath',program.assetPath);
 
-function getContent (program, encoding) {
+function getContentObject (program, encoding) {
   if (log.isDebugEnabled) log.debug('begin reading content');
   var deferred = Q.defer();
   var collector = Q.defer();
 
+  collector.promise.done((content)=> {
+    
+    if(Buffer.isBuffer(content) || typeof content === 'string') {
+      log.debug('content is buffer or string. program.field=%s', program.field);
+      if (program.field == undefined) {
+        fail('Content wasnt parseable as json, and no --field parameter specified.');
+        program.help();
+      }
+    }
+
+    if(Buffer.isBuffer(content)) {
+      fieldsJson = {};
+      fieldsJson[program.field] = content.toString('utf8');
+    }
+
+    if(typeof content === 'string') {
+      fieldsJson = {};
+      fieldsJson[program.field] = content;
+    }
+
+    if(typeof content === 'object') {
+      fieldsJson = content;
+    }
+
+    deferred.resolve(fieldsJson);
+  }, (err) => {
+    deferred.reject(err);
+  });
+      
   if (program.stdin) {
     log.debug('reading content from stdin');
   
@@ -104,53 +133,29 @@ function getContent (program, encoding) {
       }
       catch(ex) { }
       
-      if (program.field !== undefined) {
-        parsedData = {};
-        parsedData[program.field] = contentStr;
-        collector.resolve(parsedData);
-      }
-
-      collector.then((content)=>{
-    
-        if(Buffer.isBuffer(content) || typeof content === 'string') {
-          log.debug('content is buffer or string. program.field=%s', program.field);
-          if (program.field == undefined) {
-            fail('Content wasnt parseable as json, and no --field parameter specified.');
-            program.help();
-          }
-        }
-
-        if(Buffer.isBuffer(content)) {
-          fieldsJson = {};
-          fieldsJson[program.field] = content.toString('utf8');
-        }
-        if(typeof content === 'string') {
-          fieldsJson = {};
-          fieldsJson[program.field] = content;
-        }
-        
-        deferred.resolve(fieldsJson);
-      }, (err) => {
-        deferred.reject(err);
-      })
-      
+      collector.resolve(contentStr);
     });
 
-  } else if(program.field !== undefined) {
-    log.debug('set field: %s to value: "%s".', program.field, program.fieldvalue);
-    if(program.fieldvalue !== undefined) {
-      var fields = {};
-      fields[program.field] = program.fieldvalue;
-      deferred.resolve(fields);
-    } else {
-      deferred.resolve({});
-    }
-  }
-  else //read from file
-  {
+  } else if(program.inputFile !== undefined) {
     //read file name from program.args[2]
-    log.debug('reading from file=%s', program.inputFile);
-    return Q.nfcall(fs.readFile, program.inputFile, { 'encoding': 'utf8' });
+    log.debug("reading from file='%s'." , program.inputFile);
+    
+    Q.nfcall(fs.readFile, program.inputFile, { 'encoding': 'utf8' }).then(function(res) {
+      try {
+        var fields = JSON.parse(res);
+        collector.resolve(fields);
+      } catch(ex) {}
+      
+      if(fields === undefined) {
+        fields = {};
+        fields[program.field] = res;
+        collector.resolve(fields);
+      }
+    });
+
+  } else { //read from file
+    
+    fail('field not set.');
   }
 
   
@@ -203,10 +208,10 @@ var exitcode=-1;
       //existsResp documented http://developer.crownpeak.com/Documentation/AccessAPI/AssetController/Methods/Exists(AssetExistsRequest).html
       var workflowAssetId = existsResp.json.assetId;
       
-      getContent(program).then(function (fieldsJson) {
+      getContentObject(program).then(function (contentObject) {
         
         if(log.isDebugEnabled) {
-          log.debug('fieldsJson from getContent:', fieldsJson);
+          log.debug('fieldsJson from getContent:', contentObject);
         }
 
         var options={};
@@ -217,7 +222,7 @@ var exitcode=-1;
           options.runPostSave = program.runPostSave;
 
         log.debug('calling AssetUpdate. options=%j', options);
-        accessapi.AssetUpdate(workflowAssetId, fieldsJson, null, options).then(function() {
+        accessapi.AssetUpdate(workflowAssetId, contentObject, null, options).then(function() {
           status('Success updating %s.', program.assetPath);
         })
 
