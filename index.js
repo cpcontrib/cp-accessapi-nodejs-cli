@@ -10,4 +10,5 @@ program
   .command('init', 'initialize a config for using the AccessAPI')
   .command('update', 'update an asset')
   .command('list','list contents of a folder')
+  .command('route', 'routing and publishing')
   .parse(process.argv);
