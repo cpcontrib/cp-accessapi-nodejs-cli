@@ -59,6 +59,7 @@ program
   .option('--config <file>', 'a config file to use. defaults to using ./accessapi-config.json', 'accessapi-config.json')
   .option('-i,--instance', 'instance (required if multiple instances defined in the config file)')
   //.option('--recursive','route', false)
+  .option('--rawJson', 'output as raw json')
   .arguments("<assetPath>")
   .action(function (assetPath) {
     program.assetPath = assetPath;
@@ -74,6 +75,44 @@ function getSystemStates(accessapi) {
     
 
     return deferred.promise;
+}
+
+function pad(pad, str, padLeft) {
+  if (typeof str === 'undefined') 
+    return pad;
+  if (padLeft) {
+    return (pad + str).slice(-pad.length);
+  } else {
+    return (str + pad).substring(0, pad.length);
+  }
+}
+
+function formatDosDir(program,assets,console) {
+  console.log(util.format(' Directory of %s', program.assetPath));
+  console.log('');
+              
+  for(var i=0; i < assets.length; i++) {
+    var asset = assets[i];
+    
+    var directoryOrSizeStr = null;
+    if(asset.type === 4) {
+      directoryOrSizeStr = '<DIR>         ';
+    } else if(asset.type === 2) {
+      directoryOrSizeStr = pad('             ', asset.size,true);
+    }
+    
+    
+    var formattedDateStr = asset.modified_date.toString();
+    formattedDateStr = pad('                        ', formattedDateStr);
+    
+    console.log('%s  %s %s`%d`', formattedDateStr, directoryOrSizeStr, asset.label, asset.id);
+  }
+}
+function formatRawJson(program,assets,console) {
+  console.log(JSON.stringify(assets,null,'  '));
+}
+function formatCrownpeakList(program,assets,console) {
+  console.log('formatCrownpeakList');
 }
 
 main = function() {
@@ -99,8 +138,17 @@ main = function() {
 
         accessapi.AssetPaged({"assetId":resp.assetId}).then((resp2)=>{
             var resp = resp2.json;
+            var formatter = formatCrownpeakList;
             
-            console.log(JSON.stringify(resp,null,'  '));
+            if(program.rawJson === 'true') {
+              formatter = formatRawJson;
+            } else {
+              formatter = formatDosDir;
+            }
+
+            if(formatter !== undefined) {
+              formatter(program, resp.assets, console);
+            }
 
         });
 
