@@ -132,8 +132,9 @@ main = function() {
       accessapi.AssetExists(program.assetPath).then((resp2)=>{
         var resp = resp2.json;
         
-        if(resp.exists !== "true") {
+        if(resp.exists !== true) {
             fail("folder '%s' was not found.", program.assetPath);
+            process.exit(1);
         }
 
         accessapi.AssetPaged({"assetId":resp.assetId}).then((resp2)=>{
